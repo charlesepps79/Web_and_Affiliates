@@ -1,4 +1,4 @@
-%LET LOAN_ENTDATE_BEGIN1 = "2010-01-01"; /* DO NOT CHANGE */
+﻿%LET LOAN_ENTDATE_BEGIN1 = "2010-01-01"; /* DO NOT CHANGE */
 %LET LOAN_ENTDATE_END1 = "2018-05-31"; /* CHANGE TO END OF THE MONTH */
 
 *** PULL LOAN TABLE ---------------------------------------------- ***;
