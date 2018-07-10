@@ -71,8 +71,32 @@ PROC SQL;
 		LEFT JOIN WORK.ALL_APP9 t2 ON t1.BrAcctNo=t2.renew_bracctno;
 QUIT;
 
+*** IMPORT VP ROSTER FILE ---------------------------------------- ***;
+PROC IMPORT 
+	DATAFILE = &ROSTER_LOC. 
+	DBMS = EXCEL 
+	OUT = VP_LIST 
+	REPLACE;
+RUN;
+
+*** RENAME COLUMNS ----------------------------------------------- ***;
+DATA CURRENT_VP_LIST;
+	SET VP_LIST;
+	RENAME 'branch #'n = OWNBR 
+		   'Vice President'n = VP_CURRENT 
+		   'SUPERVISOR'n = SUERVISOR_CURRENT;
+	KEEP  SUPERVISOR 'branch #'n 'Vice President'n;
+RUN;
+
+PROC SQL;
+	CREATE TABLE WORK.REPORTS_TABLE_4 AS 
+	SELECT t1.*, t2.OWNBR, t2.VP_CURRENT, t2.SUERVISOR_CURRENT
+	FROM WORK.REPORTS_TABLE_3 t1 
+		LEFT JOIN WORK.CURRENT_VP_LIST t2 ON t1.OWNBR=t2.OWNBR;
+QUIT;
+
 DATA REPORTS_TABLE;
-	SET REPORTS_TABLE_3;
+	SET REPORTS_TABLE_4;
 	old_AmtPaidLast = SUM(old_AmtPaidLast, 0);
 	renew_amt = 0;
 	IF renew_bracctno NE "" THEN RENEW_FLAG = 1;
@@ -110,8 +134,8 @@ RUN;
 
 PROC SQL;
    CREATE TABLE LT_BY_BRANCH AS 
-   SELECT t1.VP, 
-          t1.Supervisor, 
+   SELECT t1.VP_CURRENT, 
+          t1.SUERVISOR_CURRENT, 
           t1.OWNBR, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
@@ -166,8 +190,8 @@ PROC SQL;
 				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
-      GROUP BY t1.VP,
-               t1.Supervisor,
+      GROUP BY t1.VP_CURRENT,
+               t1.SUERVISOR_CURRENT,
                t1.OWNBR;
 QUIT;
 
@@ -914,4 +938,51 @@ PROC SQL;
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.DECISIONSTATUS;
+QUIT;
+
+PROC SQL;
+   CREATE TABLE ALL_BY_SOURCE AS 
+   SELECT t1.SOURCE, 
+          /* Total Apps */
+            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
+          /* # PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* % PQ */
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+          /* Booked */
+            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
+          /* Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
+          /* PQ Book Rt */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+          /* $ Total Adv */
+            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+          /* $ Net Adv */
+            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
+          /* Avg Adv */
+            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
+            AS 'Avg Adv'n, 
+          /* Net Loan Amount Bk Min $ */
+            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
+          /* Net Loan Amount Bk Max $ */
+            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+          /* # Renewal */
+            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
+          /* $ Renew */
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+          /* Total App Cost */
+            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+          /* Total Loan Cost */
+            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+          /* Total Cost */
+            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
+          /* CPK */
+            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
+            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+      FROM WORK.REPORTS_TABLE t1
+      GROUP BY t1.SOURCE;
 QUIT;

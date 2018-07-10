@@ -300,7 +300,8 @@ DATA ALL_APPS_3;
 
 	*** SM: $15 for autoapproved --------------------------------- ***;
 	IF AFFILIATE = 'Super Money' THEN DO;
-		COSTPERAPP = 15;
+		IF PREAPPROVED_FLAG = 1 THEN COSTPERAPP = 15;
+		ELSE COSTPERAPP = 0;
 	END;
 
 	IF 1000 <= AMTREQUESTED <= 2999 THEN AMTBUCKET = "1000-2999";
