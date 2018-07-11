@@ -2,30 +2,30 @@ OPTIONS MPRINT MLOGIC SYMBOLGEN; /* SET DEBUGGING OPTIONS */
 
 *** WEB REPORT MAIN DIRECTORY LOCATION --------------------------- ***;
 %LET MAIN_DIR = 
-	\\mktg-app01\E\cepps\Web_Report\Reports\06_2018;
+	\\mktg-app01\E\cepps\Web_Report\Reports\2018Q2;
 *** CHANGE ONLY WHEN ROSTER FILE CHANGES ------------------------- ***;
 %LET ROSTER_LOC = 
-"\\mktg-app01\E\cepps\Web_Report\BranchRosterFile\Rosters 7-2-18.xlsx";
+	"\\mktg-app01\E\cepps\Web_Report\BranchRosterFile\Rosters 7-2-18.xlsx";
 
 *** CHANGE MONTH_NAME TO APP MONTH ------------------------------- ***;
-%LET NEW_MONTH_FILE = JUN_APPS;
+%LET NEW_MONTH_FILE = Q2_APPS;
 *** CHANGE DATE TO START OF APP MONTH ---------------------------- ***;
-%LET LOAN_ENT_DATE_BEGIN = "2018-06-01";
+%LET LOAN_ENT_DATE_BEGIN = "2018-04-01";
 *** CHANGE DATE TO END OF APP MONTH ------------------------------ ***;
 %LET LOAN_ENT_DATE_END = "2018-06-30";
 
 
 *** NO CHANGE - ENSURE CURRENT MONTH APP FILE -------------------- ***;
 %LET AIP_REPORT_LOC = 
-"\\mktg-app01\E\cepps\Web_Report\Reports\06_2018\Application Internet Report 2018-06-01 to 2018-06-30.xlsx";
+"\\mktg-app01\E\cepps\Web_Report\Reports\2018Q2\Application Internet Report 2018-04-01 to 2018-06-30.xlsx";
 %LET TAB_NAME = Application Internet Report;
 
 *** CHANGE TO LAST MONTH ALL APPS FILENAME ----------------------- ***;
 %LET ALL_APPS_HIST_LOC = "&MAIN_DIR\ALL_APPS_MAY2018.xlsx";
 
 *** THIS IS FILE NAME OF CURRENT ALL APPS FILE ------------------- ***;
-%LET ALL_APPS_2_EXPORT = ALL_APPS_JUN_2018;
-%LET VW_L_EXPORT = VW_L_JUN_2018; /* THIS IS FILENAME OF VW_L FILE */
+%LET ALL_APPS_2_EXPORT = ALL_APPS_Q2_2018;
+%LET VW_L_EXPORT = VW_L_Q2_2018; /* THIS IS FILENAME OF VW_L FILE */
 
 %LET APP_IMPORT_FILE = APP_IMPORT_FILE_2; 
 *** CHANGE MONTH NAME TO APP MONTH - 1 MONTH --------------------- ***;
@@ -38,9 +38,9 @@ OPTIONS MPRINT MLOGIC SYMBOLGEN; /* SET DEBUGGING OPTIONS */
 %LET TWO_MO_AGO = 201804;	/* YYYYMM CHANGE TO APP MONTH - 2 */
 
 *** CHANGE MONTH NAME TO APP MONTH - 2 MONTH --------------------- ***;
-%LET TWO_MO_BOOKED = APR_APPS_B;
-%LET TWO_MO_UNBOOKED = APR_APPS_UNB;
-%LET APPS_MINUS_2_MO_AGO = APPS_EXCEPT_APR;
+%LET TWO_MO_BOOKED = APRIL_APPS_B;
+%LET TWO_MO_UNBOOKED = APRIL_APPS_UNB;
+%LET APPS_MINUS_2_MO_AGO = APPS_EXCEPT_APRIL;
 
 *** CHANGE MONTH NAME TO APP MONTH - 1 MONTH --------------------- ***;
 %LET ONE_MO_BOOKED = MAY_APPS_B;
