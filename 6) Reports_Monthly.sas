@@ -36,7 +36,7 @@ QUIT;
 PROC SQL;
    CREATE TABLE WORK.OWNER_TYPE_2 AS 
    SELECT t1.'Application Number'n AS APPNUMBER, 
-          t1.'Applicant Address Ownership'n, 
+          /* t1.'Applicant Address Ownership'n, */ 
           t1.'Loan Request Purpose'n
       FROM WORK.AIP_INPUT t1
       ORDER BY t1.'Application Number'n;
@@ -96,6 +96,7 @@ PROC SQL;
 		LEFT JOIN WORK.CURRENT_VP_LIST t2 ON t1.OWNBR=t2.OWNBR;
 QUIT;
 
+/*
 PROC IMPORT 
     DATAFILE = 
         "\\mktg-app01\E\cepps\Web_Report\BranchRosterFile\ZIP07_CBSA06.xlsx" 
@@ -109,9 +110,10 @@ PROC SQL;
     FROM WORK.REPORTS_TABLE_4 t1 
         LEFT JOIN WORK.ZIP_CBSA t2 ON t1.ZIP=t2.ZIP;
 QUIT;
+*/
 
 DATA REPORTS_TABLE;
-	SET REPORTS_TABLE_5;
+	SET REPORTS_TABLE_4;
 	old_AmtPaidLast = SUM(old_AmtPaidLast, 0);
 	renew_amt = 0;
 	IF renew_bracctno NE "" THEN RENEW_FLAG = 1;
@@ -130,13 +132,13 @@ DATA REPORTS_TABLE;
 	TOTALLOANCOST_CURRENT = 0;
 	RENEW_FLAG_CURRENT = 0;
 
-	IF APPYRMONTH = 201808 THEN DO;
+	IF APPYRMONTH = 201809 THEN DO;
 		TOTALAPPS_CURRENT = TOTALAPPS;
 		PREAPPROV_CURRENT = PREAPPROVED_FLAG;
 		TOTALAPPCOST_CURRENT = TOTALAPPCOST;
 	END;
 
-	IF ENTYRMONTH = 201808 THEN DO;
+	IF ENTYRMONTH = 201809 THEN DO;
 		BOOKED_CURRENT = BOOKED;
 		NETLOANAMT_CURRENT = NetLoanAmount;
 		TOTALLOANCOST_CURRENT = TOTALLOANCOST;
@@ -2094,321 +2096,6 @@ PROC SQL;
            ) AND t1.BOOKED_CURRENT = 1 AND t1.SOURCE = 'SuperMoney LLC';
 QUIT;
 
-*** Generate BY_CBSA reports ----------------------------------- ***;
-PROC SQL;
-   CREATE TABLE LT_BY_CBSA AS 
-   SELECT t1.APPSTATE, 
-          t1.CBSA, 
-		  /* # of Zip Codes */
-            (COUNT(DISTINCT(t1.ZIP))) FORMAT=BEST5. AS '# of Zip Codes'n,
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-                FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-                FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-                FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) / 
-                (SUM(t1.BOOKED_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
-          /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT))
-                FORMAT=DOLLAR8. AS 'Total App Cost'n, 
-          /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
-          /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) 
-                FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
-          /* Total Cost */
-            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) / 
-                ( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
-                FORMAT=DOLLAR8. AS CPK
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'LendingTree'
-      GROUP BY t1.APPSTATE, 
-               t1.CBSA;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE WEB_BY_CBSA AS 
-   SELECT t1.APPSTATE, 
-          t1.CBSA, 
-		  /* # of Zip Codes */
-            (COUNT(DISTINCT(t1.ZIP))) FORMAT=BEST5. AS '# of Zip Codes'n,
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-                FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-                FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-                FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) / 
-                (SUM(t1.BOOKED_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
-          /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT))
-                FORMAT=DOLLAR8. AS 'Total App Cost'n, 
-          /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
-          /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) 
-                FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
-          /* Total Cost */
-            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) / 
-                ( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
-                FORMAT=DOLLAR8. AS CPK
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'Web Apps'
-      GROUP BY t1.APPSTATE, 
-               t1.CBSA;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE CK_BY_CBSA AS 
-   SELECT t1.APPSTATE, 
-          t1.CBSA, 
-		  /* # of Zip Codes */
-            (COUNT(DISTINCT(t1.ZIP))) FORMAT=BEST5. AS '# of Zip Codes'n,
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-                FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-                FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-                FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) / 
-                (SUM(t1.BOOKED_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
-          /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT))
-                FORMAT=DOLLAR8. AS 'Total App Cost'n, 
-          /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
-          /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) 
-                FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
-          /* Total Cost */
-            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) / 
-                ( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
-                FORMAT=DOLLAR8. AS CPK
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'CreditKarma'
-      GROUP BY t1.APPSTATE, 
-               t1.CBSA;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE SM_BY_CBSA AS 
-   SELECT t1.APPSTATE, 
-          t1.CBSA, 
-		  /* # of Zip Codes */
-            (COUNT(DISTINCT(t1.ZIP))) FORMAT=BEST5. AS '# of Zip Codes'n,
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-                FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-                FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-                FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) / 
-                (SUM(t1.BOOKED_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
-          /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT))
-                FORMAT=DOLLAR8. AS 'Total App Cost'n, 
-          /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
-          /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) 
-                FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
-          /* Total Cost */
-            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) / 
-                ( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
-                FORMAT=DOLLAR8. AS CPK
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'SuperMoney LLC'
-      GROUP BY t1.APPSTATE, 
-               t1.CBSA;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE ALL_BY_CBSA AS 
-   SELECT t1.APPSTATE, 
-          t1.CBSA, 
-		  /* # of Zip Codes */
-            (COUNT(DISTINCT(t1.ZIP))) FORMAT=BEST5. AS '# of Zip Codes'n,
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-                FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-                FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-                FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-                FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) / 
-                (SUM(t1.BOOKED_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-                FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
-          /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT))
-                FORMAT=DOLLAR8. AS 'Total App Cost'n, 
-          /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
-          /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) 
-                FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
-          /* Total Cost */
-            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) 
-                FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
-                (SUM(t1.TOTALAPPCOST_CURRENT))) / 
-                ( (SUM(t1.NEW_AMT_CURRENT)) + 
-                (SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
-                FORMAT=DOLLAR8. AS CPK
-      FROM REPORTS_TABLE t1
-      GROUP BY t1.APPSTATE, 
-               t1.CBSA;
-QUIT;
-
 data _null_;
 	dt = put(today( ), date9.);
 	call symput('dt', dt);
@@ -2416,308 +2103,266 @@ run;
 
 proc export
 	data = LT_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_STATE_R_ID_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = LT_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = ALL_BY_SOURCE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "All Sources";
 run;
 
 proc export
 	data = LT_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = LT_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LT_Records";
 run;
 
 proc export
 	data = WEB_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = WEB_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "WEB_Records";
 run;
 
 proc export
 	data = CK_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = CK_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CK_Records";
 run;
 
 proc export
 	data = SM_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = SM_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SM_Records";
-run;
-
-proc export
-	data = LT_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "Lending_Tree";
-run;
-
-proc export
-	data = WEB_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "Web_Apps";
-run;
-
-proc export
-	data = CK_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "Credit_Karma";
-run;
-
-proc export
-	data = CK_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "Credit_Karma";
-run;
-
-proc export
-	data = SM_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "Super_Money_LLC";
-run;
-
-proc export
-	data = ALL_BY_CBSA
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\08_2018\August_2018_Web_Reports\Affiliates_by_CBSA_&dt..xlsx"
-	dbms = xlsx replace;
-	sheet = "All_Apps";
 run;
