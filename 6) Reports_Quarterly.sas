@@ -36,7 +36,7 @@ QUIT;
 PROC SQL;
    CREATE TABLE WORK.OWNER_TYPE_2 AS 
    SELECT t1.'Application Number'n AS APPNUMBER, 
-          /* t1.'Applicant Address Ownership'n, */ 
+          t1.'Applicant Address Ownership'n,
           t1.'Loan Request Purpose'n
       FROM WORK.AIP_INPUT t1
       ORDER BY t1.'Application Number'n;
