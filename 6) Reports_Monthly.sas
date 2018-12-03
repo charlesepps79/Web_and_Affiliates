@@ -131,14 +131,26 @@ DATA REPORTS_TABLE;
 	TOTALAPPCOST_CURRENT = 0;
 	TOTALLOANCOST_CURRENT = 0;
 	RENEW_FLAG_CURRENT = 0;
+	LARGE_BOOKED_CURRENT = 0;
+	LARGE_NETLOANAMT_CURRENT = 0;
+	LARGE_TOTALLOANCOST_CURRENT = 0;
+	LARGE_TOTALAPPCOST_CURRENT = 0;
+	LARGE_NEW_AMT_CURRENT = 0;
+	LARGE_RENEW_AMT_CURRENT = 0;
+	SMALL_BOOKED_CURRENT = 0;
+	SMALL_NETLOANAMT_CURRENT = 0;
+	SMALL_TOTALLOANCOST_CURRENT = 0;
+	SMALL_TOTALAPPCOST_CURRENT = 0;
+	SMALL_NEW_AMT_CURRENT = 0;
+	SMALL_RENEW_AMT_CURRENT = 0;
 
-	IF APPYRMONTH = 201809 THEN DO;
+	IF APPYRMONTH = 201810 THEN DO;
 		TOTALAPPS_CURRENT = TOTALAPPS;
 		PREAPPROV_CURRENT = PREAPPROVED_FLAG;
 		TOTALAPPCOST_CURRENT = TOTALAPPCOST;
 	END;
 
-	IF ENTYRMONTH = 201809 THEN DO;
+	IF ENTYRMONTH = 201810 THEN DO;
 		BOOKED_CURRENT = BOOKED;
 		NETLOANAMT_CURRENT = NetLoanAmount;
 		TOTALLOANCOST_CURRENT = TOTALLOANCOST;
@@ -146,6 +158,24 @@ DATA REPORTS_TABLE;
 		RENEW_FLAG_CURRENT = RENEW_FLAG;
 		NEW_AMT_CURRENT = NEW_AMT;
 		OLD_AMTPAIDLAST_CURRENT = OLD_AMTPAIDLAST;
+	END;
+
+	IF ENTYRMONTH = 201810 AND NetLoanAmount > 2500 THEN DO;
+		LARGE_BOOKED_CURRENT = BOOKED;
+		LARGE_NETLOANAMT_CURRENT = NetLoanAmount;
+		LARGE_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
+		LARGE_TOTALAPPCOST_CURRENT = TOTALAPPCOST_CURRENT;
+		LARGE_NEW_AMT_CURRENT = NEW_AMT_CURRENT;
+		LARGE_RENEW_AMT_CURRENT = RENEW_AMT_CURRENT;
+	END;
+
+	IF ENTYRMONTH = 201810 AND NetLoanAmount <= 2500 THEN DO;
+		SMALL_BOOKED_CURRENT = BOOKED;
+		SMALL_NETLOANAMT_CURRENT = NetLoanAmount;
+		SMALL_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
+		SMALL_TOTALAPPCOST_CURRENT = TOTALAPPCOST_CURRENT;
+		SMALL_NEW_AMT_CURRENT = NEW_AMT_CURRENT;
+		SMALL_RENEW_AMT_CURRENT = RENEW_AMT_CURRENT;
 	END;
 RUN;
 
@@ -162,6 +192,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -170,6 +204,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -200,7 +240,19 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -225,6 +277,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -233,51 +289,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-				(SUM(t1.RENEW_AMT_CURRENT))) / 
-				(SUM(t1.BOOKED_CURRENT))) 
-				FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-				FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n 
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'Web Apps'
-      GROUP BY t1.VP_CURRENT,
-               t1.Supervisor,
-               t1.OWNBR;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE CK_BY_BRANCH AS 
-   SELECT t1.VP_CURRENT, 
-          t1.Supervisor, 
-          t1.OWNBR, 
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-				FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -308,7 +325,104 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
+      FROM REPORTS_TABLE t1
+      WHERE t1.SOURCE = 'Web Apps'
+      GROUP BY t1.VP_CURRENT,
+               t1.Supervisor,
+               t1.OWNBR;
+QUIT;
+
+PROC SQL;
+   CREATE TABLE CK_BY_BRANCH AS 
+   SELECT t1.VP_CURRENT, 
+          t1.Supervisor, 
+          t1.OWNBR, 
+          /* Total Apps */
+            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
+          /* % PQ */
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+          /* Booked */
+            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
+          /* Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+          /* $ Total Adv */
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
+          /* $ Net Adv */
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
+          /* # Renewal */
+            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
+          /* $ Renew */
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
+          /* Total App Cost */
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
+          /* Total Loan Cost */
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
+          /* Total Cost */
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -333,6 +447,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -341,6 +459,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -371,7 +495,19 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -392,55 +528,77 @@ PROC SQL;
           t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.APPSTATE,
@@ -458,44 +616,77 @@ PROC SQL;
           t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.APPSTATE,
@@ -508,44 +699,77 @@ PROC SQL;
           t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.APPSTATE,
@@ -558,55 +782,77 @@ PROC SQL;
           t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.APPSTATE,
@@ -621,55 +867,77 @@ PROC SQL;
           t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.APPSTATE,
@@ -684,40 +952,77 @@ PROC SQL;
    SELECT t1.'Applicant Address Ownership'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8.2 AS 'PQ book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) FORMAT=DOLLAR12.2 AS '$ Net Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
           /* avg adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12.2 AS 
-            'avg adv'n, 
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12.2 AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12.2 AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT))) * 1000) FORMAT=DOLLAR12.2 AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.'Applicant Address Ownership'n;
@@ -728,40 +1033,77 @@ PROC SQL;
    SELECT t1.'Applicant Address Ownership'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8.2 AS 'PQ book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) FORMAT=DOLLAR12.2 AS '$ Net Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
           /* avg adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12.2 AS 
-            'avg adv'n, 
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12.2 AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12.2 AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT))) * 1000) FORMAT=DOLLAR12.2 AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.'Applicant Address Ownership'n;
@@ -772,40 +1114,77 @@ PROC SQL;
    SELECT t1.'Applicant Address Ownership'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8.2 AS 'PQ book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) FORMAT=DOLLAR12.2 AS '$ Net Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
           /* avg adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12.2 AS 
-            'avg adv'n, 
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12.2 AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12.2 AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT))) * 1000) FORMAT=DOLLAR12.2 AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.'Applicant Address Ownership'n;
@@ -816,40 +1195,77 @@ PROC SQL;
    SELECT t1.'Applicant Address Ownership'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8.2 AS 'PQ book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) FORMAT=DOLLAR12.2 AS '$ Net Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
           /* avg adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12.2 AS 
-            'avg adv'n, 
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12.2 AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12.2 AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12.2 AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12.2 AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT))) * 1000) FORMAT=DOLLAR12.2 AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.'Applicant Address Ownership'n;
@@ -861,40 +1277,77 @@ PROC SQL;
    SELECT t1.'Loan Request Purpose'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / (((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))) * 1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.'Loan Request Purpose'n;
@@ -905,40 +1358,77 @@ PROC SQL;
    SELECT t1.'Loan Request Purpose'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / (((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))) * 1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.'Loan Request Purpose'n;
@@ -949,40 +1439,77 @@ PROC SQL;
    SELECT t1.'Loan Request Purpose'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / (((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))) * 1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.'Loan Request Purpose'n;
@@ -993,40 +1520,77 @@ PROC SQL;
    SELECT t1.'Loan Request Purpose'n, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            (((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / (((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))) * 1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.'Loan Request Purpose'n;
@@ -1038,44 +1602,77 @@ PROC SQL;
    SELECT t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.AMTBUCKET;
@@ -1086,44 +1683,77 @@ PROC SQL;
    SELECT t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.AMTBUCKET;
@@ -1134,44 +1764,77 @@ PROC SQL;
    SELECT t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.AMTBUCKET;
@@ -1182,44 +1845,77 @@ PROC SQL;
    SELECT t1.AMTBUCKET, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.AMTBUCKET;
@@ -1231,44 +1927,77 @@ PROC SQL;
    SELECT t1.SOURCE, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       GROUP BY t1.SOURCE;
 QUIT;
@@ -1282,44 +2011,77 @@ PROC SQL;
    SELECT t1.DECISIONSTATUS, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.DECISIONSTATUS;
@@ -1330,44 +2092,77 @@ PROC SQL;
    SELECT t1.DECISIONSTATUS, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.DECISIONSTATUS;
@@ -1378,44 +2173,77 @@ PROC SQL;
    SELECT t1.DECISIONSTATUS, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.DECISIONSTATUS;
@@ -1426,44 +2254,77 @@ PROC SQL;
    SELECT t1.DECISIONSTATUS, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS '% PQ'n, 
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT))) FORMAT=PERCENT8. AS 'Book Rate'n, 
-          /* PQ Book Rt */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) FORMAT=PERCENT8. AS 'PQ Book Rt'n, 
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv */
-            (((((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT))))) / (SUM(t1.BOOKED_CURRENT))) FORMAT=DOLLAR12. 
-            AS 'Avg Adv'n, 
-          /* Net Loan Amount Bk Min $ */
-            (MIN(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Min $'n, 
-          /* Net Loan Amount Bk Max $ */
-            (MAX(t1.NETLOANAMT_CURRENT)) FORMAT=DOLLAR12. AS 'Net Loan Amount Bk Max $'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) FORMAT=PERCENT8. AS '% Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n, 
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
-            (SUM(t1.TOTALAPPCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total App Cost'n, 
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
           /* Cost Per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost Per Loan'n, 
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT)) FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) + (SUM(t1.TOTALLOANCOST_CURRENT))) / ((((SUM(t1.NEW_AMT_CURRENT)) + 
-            (SUM(t1.RENEW_AMT_CURRENT)))))*1000) FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.DECISIONSTATUS;
@@ -1475,55 +2336,77 @@ PROC SQL;
           t1.APPSTATE, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'LendingTree'
       GROUP BY t1.SOURCE,
@@ -1538,55 +2421,77 @@ PROC SQL;
           t1.APPSTATE, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'Web Apps'
       GROUP BY t1.SOURCE,
@@ -1601,55 +2506,77 @@ PROC SQL;
           t1.APPSTATE, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'CreditKarma'
       GROUP BY t1.SOURCE,
@@ -1664,55 +2591,77 @@ PROC SQL;
           t1.APPSTATE, 
           /* Total Apps */
             (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* # PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '# PQ'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
           /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT))
-				FORMAT=DOLLAR12. AS '$ Total Adv'n, 
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
           /* $ Net Adv */
-            ((SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR12. AS '$ Net Adv'n, 
-          /* Avg Adv. */
-            (((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) /
-				(SUM(t1.BOOKED_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Avg Adv.'n, 
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
           /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT))) 
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% Renewal'n, 
           /* # Renewal */
             (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
           /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR12. AS '$ Renew'n,
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
           /* Total App Cost */
             (SUM(t1.TOTALAPPCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total App Cost'n, 
-          /* Cost per Loan */
-            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR12. AS 'Cost per Loan'n,
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
           /* Total Loan Cost */
-            (SUM(t1.TOTALLOANCOST_CURRENT))
-				FORMAT=DOLLAR12. AS 'Total Loan Cost'n, 
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
           /* Total Cost */
-            ((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT)))
-				FORMAT=DOLLAR12. AS 'Total Cost'n, 
-          /* CPK */
-            (((SUM(t1.TOTALAPPCOST_CURRENT)) +
-				(SUM(t1.TOTALLOANCOST_CURRENT))) /
-				((SUM(t1.NEW_AMT_CURRENT)) +
-				(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
-				FORMAT=DOLLAR12. AS CPK
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
       FROM REPORTS_TABLE t1
       WHERE t1.SOURCE = 'SuperMoney LLC'
       GROUP BY t1.SOURCE,
@@ -1734,6 +2683,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -1742,6 +2695,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -1772,7 +2731,19 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -1797,6 +2768,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -1805,51 +2780,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
-          /* $ Total Adv */
-            (SUM(t1.NETLOANAMT_CURRENT)) 
-				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
-          /* $ Net Adv */
-            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
-				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
-          /* avg adv */
-            (( (SUM(t1.NEW_AMT_CURRENT)) + 
-				(SUM(t1.RENEW_AMT_CURRENT))) / 
-				(SUM(t1.BOOKED_CURRENT))) 
-				FORMAT=DOLLAR8. AS 'avg adv'n,
-          /* % Renewal */
-            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
-				FORMAT=PERCENT8.2 AS '% Renewal'n, 
-          /* # Renewal */
-            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
-          /* $ Renew */
-            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n 
-      FROM REPORTS_TABLE t1
-      WHERE t1.SOURCE = 'Web Apps'
-      GROUP BY t1.VP_CURRENT,
-               t1.Supervisor,
-               t1.DISTRICT;
-QUIT;
-
-PROC SQL;
-   CREATE TABLE CK_BY_DISTRICT AS 
-   SELECT t1.VP_CURRENT, 
-          t1.Supervisor, 
-          t1.DISTRICT, 
-          /* Total Apps */
-            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
-          /* #PQ */
-            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
-          /* % PQ */
-            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-				FORMAT=PERCENT8.2 AS '% PQ'n, 
-          /* Booked */
-            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
-          /* Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
-				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
-          /* PQ Book Rate */
-            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
-				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -1880,7 +2816,104 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
+      FROM REPORTS_TABLE t1
+      WHERE t1.SOURCE = 'Web Apps'
+      GROUP BY t1.VP_CURRENT,
+               t1.Supervisor,
+               t1.DISTRICT;
+QUIT;
+
+PROC SQL;
+   CREATE TABLE CK_BY_DISTRICT AS 
+   SELECT t1.VP_CURRENT, 
+          t1.Supervisor, 
+          t1.DISTRICT, 
+          /* Total Apps */
+            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
+          /* % PQ */
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+          /* Booked */
+            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
+          /* Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+          /* $ Total Adv */
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
+          /* $ Net Adv */
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
+          /* # Renewal */
+            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
+          /* $ Renew */
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
+          /* Total App Cost */
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
+          /* Total Loan Cost */
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
+          /* Total Cost */
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -1905,6 +2938,10 @@ PROC SQL;
           /* % PQ */
             ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
 				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
           /* Booked */
             (SUM(t1.BOOKED_CURRENT)) AS Booked, 
           /* Book Rate */
@@ -1913,6 +2950,12 @@ PROC SQL;
           /* PQ Book Rate */
             ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
 				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
           /* $ Total Adv */
             (SUM(t1.NETLOANAMT_CURRENT)) 
 				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
@@ -1943,7 +2986,19 @@ PROC SQL;
             ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) 
 				FORMAT=DOLLAR8. AS 'Total Cost'n, 
-          /* CPK */
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
             (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
 				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
 				( (SUM(t1.NEW_AMT_CURRENT)) + 
@@ -2103,266 +3158,266 @@ run;
 
 proc export
 	data = LT_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_STATE_R_ID_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = LT_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = ALL_BY_SOURCE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "All Sources";
 run;
 
 proc export
 	data = LT_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = LT_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LT_Records";
 run;
 
 proc export
 	data = WEB_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = WEB_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "WEB_Records";
 run;
 
 proc export
 	data = CK_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = CK_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CK_Records";
 run;
 
 proc export
 	data = SM_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = SM_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2018\September_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\10_2018\October_2018_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SM_Records";
 run;
