@@ -118,9 +118,9 @@ DATA REPORTS_TABLE;
 	renew_amt = 0;
 	IF renew_bracctno NE "" THEN RENEW_FLAG = 1;
 	ELSE RENEW_FLAG = 0;
-	IF RENEW_FLAG = 1 THEN renew_amt = NetLoanAmount - old_AmtPaidLast;
+	IF RENEW_FLAG = 1 THEN renew_amt = TILA_LnAmt - old_AmtPaidLast;
 	NEW_AMT = 0;
-	IF RENEW_FLAG = 0 THEN NEW_AMT = NetLoanAmount;
+	IF RENEW_FLAG = 0 THEN NEW_AMT = TILA_LnAmt;
 	TOTALAPPS_CURRENT = 0;
 	PREAPPROV_CURRENT = 0;
 	BOOKED_CURRENT = 0;
@@ -152,7 +152,7 @@ DATA REPORTS_TABLE;
 
 	IF ENTYRMONTH = 201906 THEN DO;
 		BOOKED_CURRENT = BOOKED;
-		NETLOANAMT_CURRENT = NetLoanAmount;
+		NETLOANAMT_CURRENT = TILA_LnAmt;
 		TOTALLOANCOST_CURRENT = TOTALLOANCOST;
 		RENEW_AMT_CURRENT = renew_amt;
 		RENEW_FLAG_CURRENT = RENEW_FLAG;
@@ -160,24 +160,109 @@ DATA REPORTS_TABLE;
 		OLD_AMTPAIDLAST_CURRENT = OLD_AMTPAIDLAST;
 	END;
 
-	IF ENTYRMONTH = 201906 AND NetLoanAmount > 2500 THEN DO;
+	IF ENTYRMONTH = 201906 AND TILA_LnAmt > 2500 THEN DO;
 		LARGE_BOOKED_CURRENT = BOOKED;
-		LARGE_NETLOANAMT_CURRENT = NetLoanAmount;
+		LARGE_NETLOANAMT_CURRENT = TILA_LnAmt;
 		LARGE_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
 		LARGE_TOTALAPPCOST_CURRENT = TOTALAPPCOST_CURRENT;
 		LARGE_NEW_AMT_CURRENT = NEW_AMT_CURRENT;
 		LARGE_RENEW_AMT_CURRENT = RENEW_AMT_CURRENT;
 	END;
 
-	IF ENTYRMONTH = 201906 AND NetLoanAmount <= 2500 THEN DO;
+	IF ENTYRMONTH = 201906 AND TILA_LnAmt <= 2500 THEN DO;
 		SMALL_BOOKED_CURRENT = BOOKED;
-		SMALL_NETLOANAMT_CURRENT = NetLoanAmount;
+		SMALL_NETLOANAMT_CURRENT = TILA_LnAmt;
 		SMALL_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
 		SMALL_TOTALAPPCOST_CURRENT = TOTALAPPCOST_CURRENT;
 		SMALL_NEW_AMT_CURRENT = NEW_AMT_CURRENT;
 		SMALL_RENEW_AMT_CURRENT = RENEW_AMT_CURRENT;
 	END;
 RUN;
+
+PROC SQL;
+   CREATE TABLE LT_BY_BRANCH AS 
+   SELECT t1.BrAcctNo, 
+          /* Total Apps */
+            (SUM(t1.TOTALAPPS_CURRENT)) AS 'Total Apps'n, 
+          /* #PQ */
+            (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n, 
+          /* % PQ */
+            ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% PQ'n, 
+		  /* Large Booked */
+            (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+		  /* Small Booked */
+            (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+          /* Booked */
+            (SUM(t1.BOOKED_CURRENT)) AS Booked, 
+          /* Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+				FORMAT=PERCENT8.2 AS 'Book Rate'n, 
+          /* PQ Book Rate */
+            ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT))) 
+				FORMAT=PERCENT8.2 AS 'PQ Book Rate'n, 
+		  /* $ Large Total Adv */
+            (SUM(t1.LARGE_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+		  /* $ Small Total Adv */
+            (SUM(t1.SMALL_NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+          /* $ Total Adv */
+            (SUM(t1.NETLOANAMT_CURRENT)) 
+				FORMAT=DOLLAR8. AS '$ Total Adv'n, 
+          /* $ Net Adv */
+            ( (SUM(t1.NEW_AMT_CURRENT)) + (SUM(t1.RENEW_AMT_CURRENT)))
+				FORMAT=DOLLAR8. AS '$ Net Adv'n, 
+          /* avg adv */
+            (( (SUM(t1.NEW_AMT_CURRENT)) + 
+				(SUM(t1.RENEW_AMT_CURRENT))) / 
+				(SUM(t1.BOOKED_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'avg adv'n,
+          /* % Renewal */
+            ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+				FORMAT=PERCENT8.2 AS '% Renewal'n, 
+          /* # Renewal */
+            (SUM(t1.RENEW_FLAG_CURRENT)) AS '# Renewal'n, 
+          /* $ Renew */
+            (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ Renew'n, 
+          /* Total App Cost */
+            (SUM(t1.TOTALAPPCOST_CURRENT))
+				FORMAT=DOLLAR8. AS 'Total App Cost'n, 
+          /* Cost Per Loan */
+            (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'Cost Per Loan'n, 
+          /* Total Loan Cost */
+            (SUM(t1.TOTALLOANCOST_CURRENT)) 
+				FORMAT=DOLLAR8. AS 'Total Loan Cost'n, 
+          /* Total Cost */
+            ((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) 
+				FORMAT=DOLLAR8. AS 'Total Cost'n, 
+		  /* Large CPK */
+            (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.LARGE_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.LARGE_NEW_AMT_CURRENT)) + 
+                (SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Large_CPK,
+		  /* Small CPK */
+            (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) + 
+                (SUM(t1.SMALL_TOTALAPPCOST_CURRENT))) / 
+                ( (SUM(t1.SMALL_NEW_AMT_CURRENT)) + 
+                (SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000) 
+                FORMAT=DOLLAR8. AS Small_CPK,
+		  /* CPK */
+            (((SUM(t1.TOTALLOANCOST_CURRENT)) + 
+				(SUM(t1.TOTALAPPCOST_CURRENT))) / 
+				( (SUM(t1.NEW_AMT_CURRENT)) + 
+            	(SUM(t1.RENEW_AMT_CURRENT))) * 1000) 
+				FORMAT=DOLLAR8. AS CPK
+      FROM REPORTS_TABLE t1
+      WHERE t1.SOURCE = 'SuperMoney LLC'
+      GROUP BY t1.BrAcctNo;
+QUIT;
+
+
+
+
 
 *** Generate BY_BRANCH reports ----------------------------------- ***;
 PROC SQL;
@@ -2992,7 +3077,7 @@ PROC SQL;
 		  t1.DWOWNBR, t1.ClassID, t1.ClassCode, t1.ClassTranslation,
 		  t1.OwnSt, t1.SrCD, t1.POCD, t1.DWLOANTYPE, t1.EntDate,
 		  t1.LoanDate, t1.APRate, t1.EffRate, t1.OrgTerm, t1.CrScore,
-		  t1.NetLoanAmount, t1.ENTDATE_SAS, t1.ENTYRMONTH,
+		  t1.TILA_LnAmt, t1.ENTDATE_SAS, t1.ENTYRMONTH,
 		  t1.ENTDATEMINUSAPPDATE, t1.BOOKED, t1.SOURCE,
 		  t1.PREAPPROVED_FLAG, t1.TOTALAPPS, t1.TOTALLOANCOST,
 		  t1.BOOKED_MONTH, t1.COSTPERAPP, t1.COSTPERLOAN, 
@@ -3027,7 +3112,7 @@ PROC SQL;
 		  t1.DWOWNBR, t1.ClassID, t1.ClassCode, t1.ClassTranslation,
 		  t1.OwnSt, t1.SrCD, t1.POCD, t1.DWLOANTYPE, t1.EntDate,
 		  t1.LoanDate, t1.APRate, t1.EffRate, t1.OrgTerm, t1.CrScore,
-		  t1.NetLoanAmount, t1.ENTDATE_SAS, t1.ENTYRMONTH,
+		  t1.TILA_LnAmt, t1.ENTDATE_SAS, t1.ENTYRMONTH,
 		  t1.ENTDATEMINUSAPPDATE, t1.BOOKED, t1.SOURCE,
 		  t1.PREAPPROVED_FLAG, t1.TOTALAPPS, t1.TOTALLOANCOST,
 		  t1.BOOKED_MONTH, t1.COSTPERAPP, t1.COSTPERLOAN, 
@@ -3062,7 +3147,7 @@ PROC SQL;
 		  t1.DWOWNBR, t1.ClassID, t1.ClassCode, t1.ClassTranslation,
 		  t1.OwnSt, t1.SrCD, t1.POCD, t1.DWLOANTYPE, t1.EntDate,
 		  t1.LoanDate, t1.APRate, t1.EffRate, t1.OrgTerm, t1.CrScore,
-		  t1.NetLoanAmount, t1.ENTDATE_SAS, t1.ENTYRMONTH,
+		  t1.TILA_LnAmt, t1.ENTDATE_SAS, t1.ENTYRMONTH,
 		  t1.ENTDATEMINUSAPPDATE, t1.BOOKED, t1.SOURCE,
 		  t1.PREAPPROVED_FLAG, t1.TOTALAPPS, t1.TOTALLOANCOST,
 		  t1.BOOKED_MONTH, t1.COSTPERAPP, t1.COSTPERLOAN, 
@@ -3097,7 +3182,7 @@ PROC SQL;
 		  t1.DWOWNBR, t1.ClassID, t1.ClassCode, t1.ClassTranslation,
 		  t1.OwnSt, t1.SrCD, t1.POCD, t1.DWLOANTYPE, t1.EntDate,
 		  t1.LoanDate, t1.APRate, t1.EffRate, t1.OrgTerm, t1.CrScore,
-		  t1.NetLoanAmount, t1.ENTDATE_SAS, t1.ENTYRMONTH,
+		  t1.TILA_LnAmt, t1.ENTDATE_SAS, t1.ENTYRMONTH,
 		  t1.ENTDATEMINUSAPPDATE, t1.BOOKED, t1.SOURCE,
 		  t1.PREAPPROVED_FLAG, t1.TOTALAPPS, t1.TOTALLOANCOST,
 		  t1.BOOKED_MONTH, t1.COSTPERAPP, t1.COSTPERLOAN, 
