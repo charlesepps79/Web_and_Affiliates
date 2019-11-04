@@ -1,6 +1,6 @@
-﻿%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+﻿%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 TITLE;
 
@@ -151,9 +151,9 @@ RUN;
 ODS EXCEL CLOSE;
 
 *** BY VP AND SUPERVISOR ----------------------------------------- ***;
-%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 PROC SORT 
 	DATA = ALL_APPS_3;
@@ -322,9 +322,9 @@ RUN;
 ODS EXCEL CLOSE;
 
 *** BY AMTBUCKET ------------------------------------------------- ***;
-%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 ODS EXCEL;
 TITLE "Web Apps";
@@ -380,9 +380,9 @@ RUN;
 ODS EXCEL CLOSE;
 
 *** BY AMTBUCKET ------------------------------------------------- ***;
-%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 ODS EXCEL;
 TITLE "Lending Tree";
@@ -438,9 +438,9 @@ RUN;
 ODS EXCEL CLOSE;
 
 *** BY AMTBUCKET ------------------------------------------------- ***;
-%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 ODS EXCEL;
 TITLE "Credit Karma";
@@ -496,9 +496,9 @@ RUN;
 ODS EXCEL CLOSE;
 
 *** BY AMTBUCKET ------------------------------------------------- ***;
-%LET APPMONTH = 08;
-%LET APPYRMONTH = 201908;
-%LET BOOK_MONTH = 08;
+%LET APPMONTH = 09;
+%LET APPYRMONTH = 201909;
+%LET BOOK_MONTH = 09;
 
 ODS EXCEL;
 TITLE "SuperMoney LLC";
