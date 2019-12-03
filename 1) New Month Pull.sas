@@ -2,7 +2,7 @@
 
 *** WEB REPORT MAIN DIRECTORY LOCATION --------------------------- ***;
 %LET MAIN_DIR = 
-	\\mktg-app01\E\cepps\Web_Report\Reports\10_2019;
+	\\mktg-app01\E\cepps\Web_Report\Reports\11_2019;
 *** CHANGE ONLY WHEN ROSTER FILE CHANGES ------------------------- ***;
 %LET ROSTER_LOC = 
 "\\rmc.local\dfsroot\Dept\Marketing\Analytics\GEO\FOR SAS\Branch Roster.xlsx";
@@ -11,18 +11,18 @@
 *** CHANGE MONTH_NAME TO APP MONTH ------------------------------- ***;
 %LET NEW_MONTH_FILE = CURRENT_APPS;
 *** CHANGE DATE TO START OF APP MONTH ---------------------------- ***;
-%LET LOAN_ENT_DATE_BEGIN = "2019-10-01";
+%LET LOAN_ENT_DATE_BEGIN = "2019-11-01";
 *** CHANGE DATE TO END OF APP MONTH ------------------------------ ***;
-%LET LOAN_ENT_DATE_END = "2019-10-31";
+%LET LOAN_ENT_DATE_END = "2019-11-30";
 
 
 *** NO CHANGE - ENSURE CURRENT MONTH APP FILE -------------------- ***;
 %LET AIP_REPORT_LOC = 
-"\\mktg-app01\E\cepps\Web_Report\Reports\10_2019\Application Internet Report 10-1 10-31-2019.xlsx";
+"\\mktg-app01\E\cepps\Web_Report\Reports\11_2019\Application Internet Report Nov 2019.xlsx";
 %LET TAB_NAME = Application Internet Report;
 
 *** CHANGE TO LAST MONTH ALL APPS FILENAME ----------------------- ***;
-%LET ALL_APPS_HIST_LOC = "&MAIN_DIR\ALL_APPS_SEP2019.xlsx";
+%LET ALL_APPS_HIST_LOC = "&MAIN_DIR\ALL_APPS_OCT2019.xlsx";
 
 *** THIS IS FILE NAME OF CURRENT ALL APPS FILE ------------------- ***;
 %LET ALL_APPS_2_EXPORT = ALL_APPS_CURRENT_2019;
@@ -34,9 +34,9 @@
 *** CHANGE MONTH NAME TO APP MONTH - 1 MONTH --------------------- ***;
 %LET ALL_APPS_FILE_2 = ALL_APPS_ONE_MONTH_FINAL;
 
-%LET RECENT_MONTH_NO = 201910; /* YYYYMM CHANGE TO APP MONTH */
-%LET ONE_MO_AGO = 201909; /* YYYYMM CHANGE TO APP MONTH - 1 */
-%LET TWO_MO_AGO = 201908;	/* YYYYMM CHANGE TO APP MONTH - 2 */
+%LET RECENT_MONTH_NO = 201911; /* YYYYMM CHANGE TO APP MONTH */
+%LET ONE_MO_AGO = 201910; /* YYYYMM CHANGE TO APP MONTH - 1 */
+%LET TWO_MO_AGO = 201909;	/* YYYYMM CHANGE TO APP MONTH - 2 */
 
 *** CHANGE MONTH NAME TO APP MONTH - 2 MONTH --------------------- ***;
 %LET TWO_MO_BOOKED = TWO_MONTH_APPS_B;
