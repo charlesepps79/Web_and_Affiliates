@@ -2,7 +2,7 @@
 
 *** WEB REPORT MAIN DIRECTORY LOCATION --------------------------- ***;
 %LET MAIN_DIR = 
-	\\mktg-app01\E\cepps\Web_Report\Reports\01_2020;
+	\\mktg-app01\E\cepps\Web_Report\Reports\02_2020;
 *** CHANGE ONLY WHEN ROSTER FILE CHANGES ------------------------- ***;
 %LET ROSTER_LOC = 
 "\\rmc.local\dfsroot\Dept\Marketing\Analytics\GEO\FOR SAS\Branch Roster.xlsx";
@@ -11,22 +11,22 @@
 *** CHANGE MONTH_NAME TO LEAD MONTH ------------------------------- ***;
 %LET NEW_MONTH_FILE = CURRENT_LEADS;
 *** CHANGE DATE TO START OF LEAD MONTH ---------------------------- ***;
-%LET LOAN_ENT_DATE_BEGIN = "2020-01-01";
+%LET LOAN_ENT_DATE_BEGIN = "2020-02-01";
 *** CHANGE DATE TO END OF LEAD MONTH ------------------------------ ***;
-%LET LOAN_ENT_DATE_END = "2020-01-31";
+%LET LOAN_ENT_DATE_END = "2020-02-29";
 
 
 *** NO CHANGE - ENSURE CURRENT MONTH LEAD FILE -------------------- ***;
 %LET AIP_REPORT_LOC = 
-"\\mktg-app01\E\cepps\Web_Report\Reports\01_2020\application internet report JAN 2020.xlsx";
+"\\mktg-app01\E\cepps\Web_Report\Reports\02_2020\application internet report feb 2020.xlsx";
 %LET TAB_NAME = Application Internet Report;
 
 *** CHANGE TO LAST MONTH ALL LEADS FILENAME ----------------------- ***;
-%LET ALL_LEADS_HIST_LOC = "&MAIN_DIR\ALL_LEADS_DEC2019.xlsx";
+%LET ALL_LEADS_HIST_LOC = "&MAIN_DIR\ALL_LEADS_JAN2020.xlsx";
 
 *** THIS IS FILE NAME OF CURRENT ALL LEADS FILE ------------------- ***;
 %LET ALL_LEADS_2_EXPORT = ALL_LEADS_CURRENT_2020;
-%LET VW_L_EXPORT = VW_L_JAN_2020; /* THIS IS FILENAME OF VW_L FILE */
+%LET VW_L_EXPORT = VW_L_FEB_2020; /* THIS IS FILENAME OF VW_L FILE */
 
 %LET LEAD_IMPORT_FILE = LEAD_IMPORT_FILE_2; 
 *** CHANGE MONTH NAME TO LEAD MONTH - 1 MONTH --------------------- ***;
@@ -34,9 +34,9 @@
 *** CHANGE MONTH NAME TO LEAD MONTH - 1 MONTH --------------------- ***;
 %LET ALL_LEADS_FILE_2 = ALL_LEADS_TWO_MONTH_FINAL;
 
-%LET RECENT_MONTH_NO = 202001; /* YYYYMM CHANGE TO LEAD MONTH */
-%LET ONE_MO_AGO = 201912; /* YYYYMM CHANGE TO LEAD MONTH - 1 */
-%LET TWO_MO_AGO = 201911;	/* YYYYMM CHANGE TO LEAD MONTH - 2 */
+%LET RECENT_MONTH_NO = 202002; /* YYYYMM CHANGE TO LEAD MONTH */
+%LET ONE_MO_AGO = 202001; /* YYYYMM CHANGE TO LEAD MONTH - 1 */
+%LET TWO_MO_AGO = 201912;	/* YYYYMM CHANGE TO LEAD MONTH - 2 */
 
 *** CHANGE MONTH NAME TO LEAD MONTH - 2 MONTH --------------------- ***;
 %LET TWO_MO_BOOKED = TWO_MONTH_LEADS_B;
@@ -71,7 +71,7 @@ PROC IMPORT
 	DBMS = XLSX 
 	OUT = AIP_INPUT 
 	REPLACE;
-	RANGE = "Application Internet Report$A3:0";
+	RANGE = "Application Internet Report$A1:0";
 	GETNAMES = YES; 
 RUN;
 
