@@ -2,31 +2,31 @@
 
 *** WEB REPORT MAIN DIRECTORY LOCATION --------------------------- ***;
 %LET MAIN_DIR = 
-	\\mktg-app01\E\cepps\Web_Report\Reports\03_2020;
+	\\mktg-app01\E\cepps\Web_Report\Reports\04_2020;
 *** CHANGE ONLY WHEN ROSTER FILE CHANGES ------------------------- ***;
 %LET ROSTER_LOC = 
-"\\rmc.local\dfsroot\Dept\Marketing\Analytics\GEO\FOR SAS\Branch Roster.xlsx";
+"\\rmc.local\dfsroot\Dept\Marketing\Analytics\GEO\FOR SAS\BranchRoster.xlsx";
 *"\\mktg-app01\E\cepps\Web_Report\BranchRosterFile\Branch Roster 07-09-19.xlsx";
 
 *** CHANGE MONTH_NAME TO LEAD MONTH ------------------------------- ***;
 %LET NEW_MONTH_FILE = CURRENT_LEADS;
 *** CHANGE DATE TO START OF LEAD MONTH ---------------------------- ***;
-%LET LOAN_ENT_DATE_BEGIN = "2020-03-01";
+%LET LOAN_ENT_DATE_BEGIN = "2020-04-01";
 *** CHANGE DATE TO END OF LEAD MONTH ------------------------------ ***;
-%LET LOAN_ENT_DATE_END = "2020-03-31";
+%LET LOAN_ENT_DATE_END = "2020-04-30";
 
 
 *** NO CHANGE - ENSURE CURRENT MONTH LEAD FILE -------------------- ***;
 %LET AIP_REPORT_LOC = 
-"\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\Application Internet Report March 2020.xlsx";
+"\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\Application Internet Report April 2020.xlsx";
 %LET TAB_NAME = Application Internet Report;
 
 *** CHANGE TO LAST MONTH ALL LEADS FILENAME ----------------------- ***;
-%LET ALL_LEADS_HIST_LOC = "&MAIN_DIR\ALL_LEADS_FEB2020.xlsx";
+%LET ALL_LEADS_HIST_LOC = "&MAIN_DIR\ALL_LEADS_MAR2020.xlsx";
 
 *** THIS IS FILE NAME OF CURRENT ALL LEADS FILE ------------------- ***;
 %LET ALL_LEADS_2_EXPORT = ALL_LEADS_CURRENT_2020;
-%LET VW_L_EXPORT = VW_L_MAR_2020; /* THIS IS FILENAME OF VW_L FILE */
+%LET VW_L_EXPORT = VW_L_APR_2020; /* THIS IS FILENAME OF VW_L FILE */
 
 %LET LEAD_IMPORT_FILE = LEAD_IMPORT_FILE_2; 
 *** CHANGE MONTH NAME TO LEAD MONTH - 1 MONTH --------------------- ***;
@@ -34,9 +34,9 @@
 *** CHANGE MONTH NAME TO LEAD MONTH - 1 MONTH --------------------- ***;
 %LET ALL_LEADS_FILE_2 = ALL_LEADS_TWO_MONTH_FINAL;
 
-%LET RECENT_MONTH_NO = 202003; /* YYYYMM CHANGE TO LEAD MONTH */
-%LET ONE_MO_AGO = 202002; /* YYYYMM CHANGE TO LEAD MONTH - 1 */
-%LET TWO_MO_AGO = 202001;	/* YYYYMM CHANGE TO LEAD MONTH - 2 */
+%LET RECENT_MONTH_NO = 202004; /* YYYYMM CHANGE TO LEAD MONTH */
+%LET ONE_MO_AGO = 202003; /* YYYYMM CHANGE TO LEAD MONTH - 1 */
+%LET TWO_MO_AGO = 202002;	/* YYYYMM CHANGE TO LEAD MONTH - 2 */
 
 *** CHANGE MONTH NAME TO LEAD MONTH - 2 MONTH --------------------- ***;
 %LET TWO_MO_BOOKED = TWO_MONTH_LEADS_B;

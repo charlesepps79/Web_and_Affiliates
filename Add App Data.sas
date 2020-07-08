@@ -43,7 +43,7 @@ QUIT;
 
 PROC IMPORT 
 	DATAFILE = 
-		"\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\NNC_20200401.xlsx" 
+		"\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\NNC_20200501.xlsx" 
 		DBMS = XLSX OUT = NetNewCash REPLACE;
 	GETNAMES = YES;
 RUN;
@@ -222,18 +222,18 @@ DATA REPORTS_TABLE;
 	IF PREAPPROVED_FLAG = 1 AND TOTALAPPS = 1
 		THEN PREAPPROVED_APPS = 1;
 
-	IF LEADYRMONTH = 202003 THEN DO;
+	IF LEADYRMONTH = 202004 THEN DO;
 		TOTALLEADS_CURRENT = TOTALLEADS;
 		PREAPPROV_CURRENT = PREAPPROVED_FLAG;
 		TOTALLEADCOST_CURRENT = TOTALLEADCOST;
 	END;
 
-	IF APPYRMONTH = 202003 THEN DO;
+	IF APPYRMONTH = 202004 THEN DO;
 		TOTALAPPS_CURRENT = TOTALAPPS;
 		PQAPPS_CURRENT = PREAPPROVED_APPS;
 	END;
 
-	IF ENTYRMONTH = 202003 THEN DO;
+	IF ENTYRMONTH = 202004 THEN DO;
 		BOOKED_CURRENT = BOOKED;
 		NETLOANAMT_CURRENT = NETLOANAMOUNT;
 		TOTALLOANCOST_CURRENT = TOTALLOANCOST;
@@ -244,7 +244,7 @@ DATA REPORTS_TABLE;
 		net_new_cash_current = net_new_cash;
 	END;
 
-	IF ENTYRMONTH = 202003 AND NETLOANAMOUNT > 2500 THEN DO;
+	IF ENTYRMONTH = 202004 AND NETLOANAMOUNT > 2500 THEN DO;
 		LARGE_BOOKED_CURRENT = BOOKED;
 		LARGE_NETLOANAMT_CURRENT = NETLOANAMOUNT;
 		LARGE_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
@@ -253,7 +253,7 @@ DATA REPORTS_TABLE;
 		LARGE_RENEW_AMT_CURRENT = RENEW_AMT_CURRENT;
 	END;
 
-	IF ENTYRMONTH = 202003 AND NETLOANAMOUNT <= 2500 THEN DO;
+	IF ENTYRMONTH = 202004 AND NETLOANAMOUNT <= 2500 THEN DO;
 		SMALL_BOOKED_CURRENT = BOOKED;
 		SMALL_NETLOANAMT_CURRENT = NETLOANAMOUNT;
 		SMALL_TOTALLOANCOST_CURRENT = TOTALLOANCOST;
@@ -3663,266 +3663,266 @@ run;
 
 proc export
 	data = LT_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_BRANCH
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_STATE_R_ID_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = LT_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_STATE_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web";
 run;
 
 proc export
 	data = CK_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_APP_ADD_OWN
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Lending_Tree";
 run;
 
 proc export
 	data = WEB_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_REQUEST_PURPOSE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney";
 run;
 
 proc export
 	data = LT_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_AMT_BUCKET
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = ALL_BY_SOURCE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "All Sources";
 run;
 
 proc export
 	data = LT_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_SOURCE_STATE
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = WEB_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = CK_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = SM_BY_DISTRICT
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = LT_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LendingTree";
 run;
 
 proc export
 	data = LT_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "LT_Records";
 run;
 
 proc export
 	data = WEB_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "Web Apps";
 run;
 
 proc export
 	data = WEB_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "WEB_Records";
 run;
 
 proc export
 	data = CK_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CreditKarma";
 run;
 
 proc export
 	data = CK_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "CK_Records";
 run;
 
 proc export
 	data = SM_BY_DECISION_STATUS
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SuperMoney LLC";
 run;
 
 proc export
 	data = SM_AUTO_DC_BOOKED
-	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\03_2020\March_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\04_2020\April_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
 	dbms = xlsx replace;
 	sheet = "SM_Records";
 run;
