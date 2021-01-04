@@ -4,13 +4,13 @@
 
 data _null_;
 	call symput("importfile",
-		"WORK.final_set_20200930");
+		"WORK.final_set_20210104");
 run;
 
 PROC SQL;
    CREATE TABLE WORK.LEADS AS
    SELECT *
-      FROM WORK.final_set_20200930 t1;
+      FROM WORK.final_set_20210104 t1;
 QUIT;
 
 DATA LEADS_2;
@@ -212,13 +212,13 @@ DATA REPORTS_TABLE;
 	IF LEADMONTH < 10 THEN LEADYRMONTH = CAT(LEADYEAR, '0', LEADMONTH);
 	ELSE LEADYRMONTH = CAT(LEADYEAR, LEADMONTH);
 
-	IF LEADYRMONTH = 202009 THEN DO;
+	IF LEADYRMONTH = 202012 THEN DO;
 		TOTALLEADS_CURRENT = TOTALLEADS;
 		PREAPPROV_CURRENT = PREAPPROVED_FLAG;
 		TOTALLEADCOST_CURRENT = TOTALLEADCOST;
 	END;
 
-	IF APPYRMONTH = 202009 THEN DO;
+	IF APPYRMONTH = 202012 THEN DO;
 		TOTALAPPS_CURRENT = TOTALAPPS;
 		PQAPPS_CURRENT = PREAPPROVED_APPS;
 	END;
@@ -549,6 +549,9 @@ QUIT;
 PROC SQL;
    CREATE TABLE ALL_BY_UTM_Campaign AS
    SELECT t1.UTM_Campaign,
+   		  t1.utm_source,
+		  t1.utm_medium,
+		  t1.utm_content,
           /* Total Leads */
 		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
         /* #PQ */
@@ -638,7 +641,10 @@ PROC SQL;
       	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
 			FORMAT=DOLLAR8. AS CPK
       FROM WORK.REPORTS_TABLE t1
-      GROUP BY t1.UTM_Campaign;
+      GROUP BY t1.UTM_Campaign,
+			   t1.utm_source,
+			   t1.utm_medium,
+			   t1.utm_content;
 QUIT;
 
 *** Generate BY_BRANCH reports ----------------------------------- ***;
@@ -1122,6 +1128,102 @@ PROC SQL;
         	GROUP BY t1.OWNBR;
         QUIT;
         
+        PROC SQL;
+        	CREATE TABLE FN_BY_BRANCH AS
+        	SELECT t1.OWNBR,
+        		/* Total Leads */
+        		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+                /* #PQ */
+                (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+                /* % PQ */
+                ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+        			FORMAT=PERCENT8.2 AS '% PQ'n,
+        		/* Total Apps */
+                (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+        		/* PQ Apps */
+                (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+        		/* App Rate */
+                ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+        			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+        		/* PQ App Rate */
+                ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+        			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+        		/* Loans/  Apps */
+                ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+        			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+        		/* Large Booked */
+                (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+        		/* Small Booked */
+                (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+                /* Booked */
+                (SUM(t1.BOOKED_CURRENT)) AS Booked,
+                /* Book Rate */
+                ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+        				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+                /* PQ Book Rate */
+                ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+        			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+        		/* $ Large Total Adv */
+                (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+        			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+        		/* $ Small Total Adv */
+                (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+        			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+                /* $ Total Adv */
+                (SUM(t1.NETLOANAMT_CURRENT))
+        			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+                /* $ Net Adv */
+                (SUM(t1.net_new_cash_current))
+        			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+                /* avg adv */
+                (( (SUM(t1.NEW_AMT_CURRENT)) +
+        			(SUM(t1.RENEW_AMT_CURRENT))) /
+        			(SUM(t1.BOOKED_CURRENT)))
+        			FORMAT=DOLLAR8. AS 'avg adv'n,
+                /* % Renewal */
+                ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+        			FORMAT=PERCENT8.2 AS '% REN'n,
+                /* # Renewal */
+                (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+				/* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+                /* $ Renew */
+                (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+                /* Total App Cost */
+                (SUM(t1.TOTALLEADCOST_CURRENT))
+        			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+                /* Cost Per Loan */
+                (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+                /* Total Loan Cost */
+                (SUM(t1.TOTALLOANCOST_CURRENT))
+        			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+                /* Total Cost */
+                ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+        			(SUM(t1.TOTALLEADCOST_CURRENT)))
+        			FORMAT=DOLLAR8. AS 'Total Cost'n,
+        		/* Large CPK */
+                (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+                	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+                	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+                	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+                	FORMAT=DOLLAR8. AS Large_CPK,
+        		/* Small CPK */
+                (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+                	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+                	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+                	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+                	FORMAT=DOLLAR8. AS Small_CPK,
+        		/* CPK */
+                (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+        			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+        			( (SUM(t1.NEW_AMT_CURRENT)) +
+                	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+        			FORMAT=DOLLAR8. AS CPK
+        	FROM REPORTS_TABLE t1
+        	WHERE t1.AFFILIATE = 'FN'
+        	GROUP BY t1.OWNBR;
+        QUIT;
+
         *** Generate BY_STATE_R_ID_AMT_BUCKET report --------------------- ***;
         PROC SQL;
            CREATE TABLE LT_BY_STATE_R_ID_AMT_BUCKET AS
@@ -1227,7 +1329,7 @@ PROC SQL;
                        t1.ltfilterroutingid,
                        t1.AMTBUCKET;
         QUIT;
-        
+
         *** Generate BY_STATE_AMT_BUCKET reports ------------------------- ***;
         PROC SQL;
            CREATE TABLE LT_BY_STATE_AMT_BUCKET AS
@@ -1624,7 +1726,7 @@ PROC SQL;
              ORDER BY t1.LEAD_STATE,
                       t1.AMTBUCKET;
        QUIT;
-       
+
        PROC SQL;
           CREATE TABLE DOT_BY_STATE_AMT_BUCKET AS
           SELECT t1.LEAD_STATE,
@@ -1724,7 +1826,107 @@ PROC SQL;
              ORDER BY t1.LEAD_STATE,
                       t1.AMTBUCKET;
        QUIT;
-      
+
+       PROC SQL;
+          CREATE TABLE FN_BY_STATE_AMT_BUCKET AS
+          SELECT t1.LEAD_STATE,
+                 t1.AMTBUCKET,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.LEAD_STATE,
+                      t1.AMTBUCKET
+             ORDER BY t1.LEAD_STATE,
+                      t1.AMTBUCKET;
+       QUIT;
+
        *** Generate BY_APP_ADD_OWN reports ------------------------------ ***;
        PROC SQL;
           CREATE TABLE LT_BY_APP_ADD_OWN AS
@@ -2109,7 +2311,7 @@ PROC SQL;
              WHERE t1.AFFILIATE = 'SM'
              GROUP BY t1.'Applicant Address Ownership'n;
        QUIT;
-       
+
        PROC SQL;
           CREATE TABLE DOT_BY_APP_ADD_OWN AS
           SELECT t1.'Applicant Address Ownership'n,
@@ -2204,7 +2406,103 @@ PROC SQL;
              FROM WORK.REPORTS_TABLE t1
              WHERE t1.AFFILIATE = 'DOT'
              GROUP BY t1.'Applicant Address Ownership'n;
-       QUIT;       
+       QUIT;
+
+       PROC SQL;
+          CREATE TABLE FN_BY_APP_ADD_OWN AS
+          SELECT t1.'Applicant Address Ownership'n,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM WORK.REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.'Applicant Address Ownership'n;
+       QUIT;
 
 	   *** Generate BY_REQUEST_PURPOSE reports ------------------------------- ***;
        PROC SQL;
@@ -2590,7 +2888,7 @@ PROC SQL;
              WHERE t1.AFFILIATE = 'SM'
              GROUP BY t1.'Loan Request Purpose'n;
        QUIT;
-       
+
        PROC SQL;
           CREATE TABLE DOT_BY_REQUEST_PURPOSE AS
           SELECT t1.'Loan Request Purpose'n,
@@ -2685,7 +2983,103 @@ PROC SQL;
              FROM WORK.REPORTS_TABLE t1
              WHERE t1.AFFILIATE = 'DOT'
              GROUP BY t1.'Loan Request Purpose'n;
-       QUIT;       
+       QUIT;
+
+       PROC SQL;
+          CREATE TABLE FN_BY_REQUEST_PURPOSE AS
+          SELECT t1.'Loan Request Purpose'n,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM WORK.REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.'Loan Request Purpose'n;
+       QUIT;     
 
 	   *** Generate BY_AMT_BUCKET reports ------------------------------- ***;
        PROC SQL;
@@ -3071,7 +3465,7 @@ PROC SQL;
              WHERE t1.AFFILIATE = 'SM'
              GROUP BY t1.AMTBUCKET;
        QUIT;
-       
+
        PROC SQL;
           CREATE TABLE DOT_BY_AMT_BUCKET AS
           SELECT t1.AMTBUCKET,
@@ -3166,7 +3560,103 @@ PROC SQL;
              FROM WORK.REPORTS_TABLE t1
              WHERE t1.AFFILIATE = 'DOT'
              GROUP BY t1.AMTBUCKET;
-       QUIT;   
+       QUIT;
+
+       PROC SQL;
+          CREATE TABLE FN_BY_AMT_BUCKET AS
+          SELECT t1.AMTBUCKET,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM WORK.REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.AMTBUCKET;
+       QUIT;
  
        *****************************************;
        *****************************************;
@@ -3554,7 +4044,103 @@ PROC SQL;
              FROM WORK.REPORTS_TABLE t1
              WHERE t1.AFFILIATE = 'DOT'
              GROUP BY t1.decision_status;
-       QUIT;       
+       QUIT;
+       
+       PROC SQL;
+          CREATE TABLE FN_BY_DECISION_STATUS AS
+          SELECT t1.decision_status,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM WORK.REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.decision_status;
+       QUIT;
 
 PROC SQL;
           CREATE TABLE WEB_BY_DECISION_STATUS AS
@@ -4150,7 +4736,107 @@ PROC SQL;
                       t1.LEAD_STATE
              ORDER BY t1.AFFILIATE,
                       t1.LEAD_STATE;
-       QUIT;       
+       QUIT;
+       
+       PROC SQL;
+          CREATE TABLE FN_BY_SOURCE_STATE AS
+          SELECT t1.AFFILIATE,
+                 t1.LEAD_STATE,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.AFFILIATE,
+                      t1.LEAD_STATE
+             ORDER BY t1.AFFILIATE,
+                      t1.LEAD_STATE;
+       QUIT;
 
 	   *** Generate BY_DISTRICT reports ----------------------------------- ***;
        PROC SQL;
@@ -4631,7 +5317,103 @@ PROC SQL;
              FROM REPORTS_TABLE t1
              WHERE t1.AFFILIATE = 'DOT'
              GROUP BY t1.District;
-       QUIT;    
+       QUIT;
+       
+       PROC SQL;
+          CREATE TABLE FN_BY_DISTRICT AS
+          SELECT t1.District,
+                 /* Total Leads */
+       		(SUM(t1.TOTALLEADS_CURRENT)) AS 'Leads'n,
+               /* #PQ */
+               (SUM(t1.PREAPPROV_CURRENT)) AS '#PQ'n,
+               /* % PQ */
+               ((SUM(t1.PREAPPROV_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% PQ'n,
+       		/* Total Apps */
+               (SUM(t1.TOTALAPPS_CURRENT)) AS 'Apps'n,
+       		/* PQ Apps */
+               (SUM(t1.PQAPPS_CURRENT)) AS 'PQ Apps'n,
+       		/* App Rate */
+               ((SUM(t1.TOTALAPPS_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'apps/ leads'n,
+       		/* PQ App Rate */
+               ((SUM(t1.PQAPPS_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Apps/ # PQ'n,
+       		/* Loans/  Apps */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALAPPS_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'Loans/  Apps'n,
+       		/* Large Booked */
+               (SUM(t1.LARGE_BOOKED_CURRENT)) AS Large_Booked,
+       		/* Small Booked */
+               (SUM(t1.SMALL_BOOKED_CURRENT)) AS Small_Booked,
+               /* Booked */
+               (SUM(t1.BOOKED_CURRENT)) AS Booked,
+               /* Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.TOTALLEADS_CURRENT)))
+       				FORMAT=PERCENT8.2 AS 'Lead Book Rate'n,
+               /* PQ Book Rate */
+               ((SUM(t1.BOOKED_CURRENT)) / (SUM(t1.PREAPPROV_CURRENT)))
+       			FORMAT=PERCENT8.2 AS 'PQ Book Rate'n,
+       		/* $ Large Total Adv */
+               (SUM(t1.LARGE_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Large Total Adv'n,
+       		/* $ Small Total Adv */
+               (SUM(t1.SMALL_NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Small Total Adv'n,
+               /* $ Total Adv */
+               (SUM(t1.NETLOANAMT_CURRENT))
+       			FORMAT=DOLLAR8. AS '$ Total Volume'n,
+               /* $ Net Adv */
+               (SUM(t1.net_new_cash_current))
+       			FORMAT=DOLLAR8. AS '$ Net New Cash'n,
+               /* avg adv */
+               (( (SUM(t1.NEW_AMT_CURRENT)) +
+       			(SUM(t1.RENEW_AMT_CURRENT))) /
+       			(SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'avg adv'n,
+               /* % Renewal */
+               ((SUM(t1.RENEW_FLAG_CURRENT)) / (SUM(t1.BOOKED_CURRENT)))
+       			FORMAT=PERCENT8.2 AS '% REN'n,
+               /* # Renewal */
+               (SUM(t1.RENEW_FLAG_CURRENT)) AS '# REN 'n,
+			   /* $ Renew Volume */
+        (SUM(t1.RENEW_VOL_CURRENT)) FORMAT=DOLLAR8. AS '$ REN Volume'n,
+               /* $ Renew */
+               (SUM(t1.RENEW_AMT_CURRENT)) FORMAT=DOLLAR8. AS '$ REN NNC'n,
+               /* Total App Cost */
+               (SUM(t1.TOTALLEADCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Lead Cost'n,
+               /* Cost Per Loan */
+               (AVG(t1.COSTPERLOAN)) FORMAT=DOLLAR8. AS 'CPL'n,
+               /* Total Loan Cost */
+               (SUM(t1.TOTALLOANCOST_CURRENT))
+       			FORMAT=DOLLAR8. AS 'Total Loan Cost'n,
+               /* Total Cost */
+               ((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT)))
+       			FORMAT=DOLLAR8. AS 'Total Cost'n,
+       		/* Large CPK */
+               (((SUM(t1.LARGE_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.LARGE_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.LARGE_NEW_AMT_CURRENT)) +
+               	(SUM(t1.LARGE_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Large_CPK,
+       		/* Small CPK */
+               (((SUM(t1.SMALL_TOTALLOANCOST_CURRENT)) +
+               	(SUM(t1.SMALL_TOTALLEADCOST_CURRENT))) /
+               	( (SUM(t1.SMALL_NEW_AMT_CURRENT)) +
+               	(SUM(t1.SMALL_RENEW_AMT_CURRENT))) * 1000)
+               	FORMAT=DOLLAR8. AS Small_CPK,
+       		/* CPK */
+               (((SUM(t1.TOTALLOANCOST_CURRENT)) +
+       			(SUM(t1.TOTALLEADCOST_CURRENT))) /
+       			( (SUM(t1.NEW_AMT_CURRENT)) +
+               	(SUM(t1.RENEW_AMT_CURRENT))) * 1000)
+       			FORMAT=DOLLAR8. AS CPK
+             FROM REPORTS_TABLE t1
+             WHERE t1.AFFILIATE = 'FN'
+             GROUP BY t1.District;
+       QUIT;
  
        PROC SQL;
           CREATE TABLE LT_AUTO_DC_BOOKED AS
@@ -4688,6 +5470,17 @@ PROC SQL;
                   ) AND t1.BOOKED_CURRENT = 1 AND t1.AFFILIATE = 'DOT';
        QUIT;
        
+       PROC SQL;
+          CREATE TABLE FN_AUTO_DC_BOOKED AS
+          SELECT t1.*
+             FROM WORK.REPORTS_TABLE t1
+             WHERE t1.decision_status IN
+                  (
+                  'Auto Declined',
+                  'Declined'
+                  ) AND t1.BOOKED_CURRENT = 1 AND t1.AFFILIATE = 'FN';
+       QUIT;
+       
        data _null_;
        	dt = put(today( ), date9.);
        	call symput('dt', dt);
@@ -4695,336 +5488,399 @@ PROC SQL;
        
        proc export
        	data = LT_BY_BRANCH
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Lending_Tree";
        run;
        
        proc export
        	data = WEB_BY_BRANCH
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web";
        run;
        
        proc export
        	data = CK_BY_BRANCH
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_BRANCH
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney";
        run;
        
        proc export
        	data = DOT_BY_BRANCH
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_BRANCH
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Branch_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_STATE_R_ID_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Lending_Tree_by_Routing_ID_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Lending_Tree";
        run;
        
        proc export
        	data = LT_BY_STATE_AMT_BUCKET
-      	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+      	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Lending_Tree";
        run;
        
        proc export
        	data = WEB_BY_STATE_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web";
        run;
 
        proc export
        	data = CK_BY_STATE_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_STATE_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney";
        run;
        
        proc export
        	data = DOT_BY_STATE_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_STATE_AMT_BUCKET
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_State_and_Amount_Bucket_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_APP_ADD_OWN
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Lending_Tree";
        run;
        
        proc export
        	data = WEB_BY_APP_ADD_OWN
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web";
        run;
        
        proc export
        	data = CK_BY_APP_ADD_OWN
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_APP_ADD_OWN
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney";
        run;
        
        proc export
        	data = DOT_BY_APP_ADD_OWN
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_APP_ADD_OWN
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Application_Address_Ownership_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_REQUEST_PURPOSE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Lending_Tree";
        run;
        
        proc export
        	data = WEB_BY_REQUEST_PURPOSE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web Apps";
        run;
        
        proc export
        	data = CK_BY_REQUEST_PURPOSE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_REQUEST_PURPOSE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney";
        run;
        
        proc export
        	data = DOT_BY_REQUEST_PURPOSE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_REQUEST_PURPOSE
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Request_Purpose_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "LendingTree";
        run;
        
        proc export
        	data = WEB_BY_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web Apps";
        run;
        
        proc export
        	data = CK_BY_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney LLC";
        run;
        
        proc export
        	data = DOT_BY_AMT_BUCKET
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_AMT_BUCKET
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Amount_Bucket_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = ALL_BY_SOURCE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\All_Affiliates_by_Source_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "All Sources";
        run;
        
        proc export
        	data = ALL_BY_UTM_Campaign
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\All_Affiliates_by_UTM_Campaign_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\All_Affiliates_by_UTM_Campaign_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "UTM_Campaign";
        run;
        
        proc export
        	data = LT_BY_SOURCE_STATE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "LendingTree";
        run;
        
        proc export
        	data = WEB_BY_SOURCE_STATE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web Apps";
        run;
        
        proc export
        	data = CK_BY_SOURCE_STATE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_SOURCE_STATE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney LLC";
        run;
        
        proc export
        	data = DOT_BY_SOURCE_STATE
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_SOURCE_STATE
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Source_State_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_DISTRICT
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "LendingTree";
        run;
        
        proc export
        	data = WEB_BY_DISTRICT
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web Apps";
        run;
        
        proc export
        	data = CK_BY_DISTRICT
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = SM_BY_DISTRICT
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney LLC";
        run;
        
        proc export
        	data = DOT_BY_DISTRICT
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
+       run;
+       
+       proc export
+       	data = FN_BY_DISTRICT
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_District_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
        run;
  
        proc export
        	data = LT_BY_DECISION_STATUS
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "LendingTree";
        run;
        
        proc export
        	data = LT_AUTO_DC_BOOKED
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "LT_Records";
        run;
        
        proc export
        	data = WEB_BY_DECISION_STATUS
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "Web Apps";
        run;
        
        proc export
        	data = WEB_AUTO_DC_BOOKED
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "WEB_Records";
        run;
        
        proc export
        	data = CK_BY_DECISION_STATUS
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CreditKarma";
        run;
        
        proc export
        	data = CK_AUTO_DC_BOOKED
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "CK_Records";
        run;
        
        proc export
        	data = SM_BY_DECISION_STATUS
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SuperMoney LLC";
        run;
        
        proc export
        	data = SM_AUTO_DC_BOOKED
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "SM_Records";
        run;
        
        proc export
        	data = DOT_BY_DECISION_STATUS
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "dot818";
        run;
        
        proc export
        	data = DOT_AUTO_DC_BOOKED
-       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\09_2020\September_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
        	dbms = xlsx replace;
        	sheet = "DOT_Records";
+       run;
+       
+       proc export
+       	data = FN_BY_DECISION_STATUS
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder";
+       run;
+       
+       proc export
+       	data = FN_AUTO_DC_BOOKED
+       	outfile = "\\mktg-app01\E\cepps\Web_Report\Reports\12_2020\December_2020_Web_Reports\Affiliates_by_Decision_Status_&dt..xlsx"
+       	dbms = xlsx replace;
+       	sheet = "finder_Records";
        run;
